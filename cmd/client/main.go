@@ -39,7 +39,7 @@ func main() {
 	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
 
 	gs := gamelogic.NewGameState(username)
-
+	err = pubsub.SubscribeJSON(conn, routing.ExchangePerilDirect, "pause."+username, routing.PauseKey, pubsub.SimpleQueueTransient, handlerPause(gs))
 	for {
 		words := gamelogic.GetInput()
 		if len(words) == 0 {

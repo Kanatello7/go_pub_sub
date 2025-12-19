@@ -1,6 +1,7 @@
 package pubsub
 
 import (
+	"encoding/json"
 	"fmt"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -50,4 +51,32 @@ func DeclareAndBind(
 		return nil, amqp.Queue{}, fmt.Errorf("could not bind queue: %v", err)
 	}
 	return ch, queue, nil
+}
+
+func SubscribeJSON[T any](
+	conn *amqp.Connection,
+	exchange, queueName, key string,
+	queueType SimpleQueueType,
+	handler func(T),
+) error {
+	ch, queue, err := DeclareAndBind(conn, exchange, queueName, key, queueType)
+	if err != nil {
+		return err
+	}
+	delivery, err := ch.Consume(queue.Name, "", false, false, false, false, nil)
+	if err != nil {
+		return err
+	}
+	go func() {
+		for msg := range delivery {
+			var msgData T
+			err := json.Unmarshal(msg.Body, &msgData)
+			if err != nil {
+				continue
+			}
+			handler(msgData)
+			msg.Ack(false)
+		}
+	}()
+	return nil
 }
