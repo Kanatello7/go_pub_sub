@@ -68,10 +68,12 @@ func SubscribeJSON[T any](
 		return err
 	}
 	go func() {
+		defer ch.Close()
 		for msg := range delivery {
 			var msgData T
 			err := json.Unmarshal(msg.Body, &msgData)
 			if err != nil {
+				fmt.Printf("could not unmarshal message: %v\n", err)
 				continue
 			}
 			handler(msgData)
